@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Feature Reuse — An Interactive Companion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script>
+  window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]},svg:{fontCache:'global'},options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-svg.js"></script>
+<style>
+:root{
+  --paper:#F1E8D5; --card:#FFFDF8; --raised:#FAF4E6;
+  --ink:#2A241F; --ink2:#524A40; --muted:#847A6B; --faint:#ABA08E;
+  --line:#E6DBC4; --line2:#D8CBB0;
+  --accent:#0E7E5E; --accent2:#11936E; --accent-soft:#DEEDE4;
+  --gen:#E89A1C; --mid:#15A98C; --spec:#AE3CA0;
+  --ok:#138A5A; --bad:#BC3A2C;
+  --frozen:#BBB09B; --frozen-fill:#EFE9DA;
+  --ui:"Inter",system-ui,sans-serif; --display:"Spectral",Georgia,serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:
+   radial-gradient(1100px 640px at 90% -10%, rgba(232,154,28,.12), transparent 58%),
+   radial-gradient(1000px 680px at -8% 108%, rgba(14,126,94,.09), transparent 58%),
+   var(--paper);background-attachment:fixed;color:var(--ink);font-family:var(--display);font-size:18px;line-height:1.65;-webkit-font-smoothing:antialiased}
+h1,h2,h3{margin:0;font-family:var(--display);font-weight:600;letter-spacing:-.005em}
+.ui,.eyebrow,.cap,.btn,.chip,.toggle button,.figcap,.formula .plain b,.example .xl,.note h4,.nav,.readout,.axlab{font-family:var(--ui)}
+.mono,code{font-family:var(--mono)}
+a{color:inherit;text-decoration:none}
+
+/* nav */
+.nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:100;display:flex;align-items:center;justify-content:space-between;
+  padding:0 26px;background:rgba(245,245,240,.88);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);font-family:var(--ui)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;letter-spacing:.01em}
+.brand .mk{width:22px;height:14px;border-radius:3px;background:linear-gradient(90deg,var(--gen),var(--mid) 55%,var(--spec))}
+.nav .links{display:flex;gap:2px}
+.nav .links a{font-size:13px;font-weight:500;color:var(--muted);padding:7px 11px;border-radius:7px;transition:.18s}
+.nav .links a:hover{color:var(--ink);background:#ECECE4}
+.nav .links a.active{color:var(--accent);background:var(--accent-soft)}
+.menu-btn{display:none;background:none;border:1px solid var(--line2);color:var(--ink);border-radius:7px;padding:5px 9px;font-size:17px}
+
+.wrap{max-width:1140px;margin:0 auto;padding:0 26px}
+section{padding:72px 0 18px;scroll-margin-top:60px}
+.eyebrow{font-family:var(--ui);font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+.eyebrow .n{color:var(--faint);margin-right:6px}
+section h2{font-size:clamp(26px,3.2vw,34px);line-height:1.1;margin-bottom:12px}
+.sub{font-size:18px;color:var(--ink2);max-width:66ch}
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .55s,transform .55s}
+.reveal.in{opacity:1;transform:none}
+
+.hero{padding-top:118px}
+.hero .eyebrow{margin-bottom:14px}
+.hero h1{font-size:clamp(34px,5vw,52px);line-height:1.04;letter-spacing:-.02em;margin-bottom:14px;max-width:17ch}
+.hero .sub{font-size:20px;max-width:60ch}
+.hero .kbd{font-family:var(--ui);font-size:13px;color:var(--muted);margin-top:18px}
+.hero .kbd b{color:var(--accent)}
+
+/* figure card */
+.figure{margin-top:22px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 26px rgba(120,86,30,.07),0 1px 3px rgba(120,86,30,.05);overflow:hidden}
+.stage{padding:16px 18px 8px}
+.viz{width:100%;display:block}
+.figcap{font-size:13px;color:var(--muted);margin-top:10px;padding:0 2px 4px}
+.figcap b{color:var(--ink);font-weight:600}
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:9px;padding:13px 18px;border-top:1px solid var(--line);background:var(--raised)}
+.bar .spacer{flex:1}
+.cap{font-family:var(--ui);font-size:12.5px;color:var(--ink2)}
+.cap b{color:var(--accent)}
+.btn{font-weight:600;font-size:13.5px;border-radius:8px;padding:9px 15px;cursor:pointer;border:1px solid transparent;display:inline-flex;align-items:center;gap:7px;transition:.16s;user-select:none}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:var(--accent);color:#fff;box-shadow:0 3px 12px rgba(14,126,94,.30)}
+.btn.primary:hover{background:var(--accent2);box-shadow:0 4px 16px rgba(14,126,94,.38)}
+.btn.ghost{background:#fff;border-color:var(--line2);color:var(--ink)}
+.btn.ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn.reset{background:transparent;border-color:var(--line2);color:var(--muted)}
+.btn.reset:hover{color:var(--ink2)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.toggle{display:inline-flex;border:1px solid var(--line2);border-radius:8px;overflow:hidden;background:#fff}
+.toggle button{font-weight:600;font-size:12.5px;background:transparent;color:var(--muted);border:none;padding:8px 12px;cursor:pointer;transition:.16s}
+.toggle button.on{background:var(--accent-soft);color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;padding:14px 18px 2px}
+.chip{font-weight:600;font-size:12.5px;padding:7px 12px;border-radius:8px;border:1px solid var(--line2);color:var(--ink2);background:#fff;cursor:pointer;transition:.16s;display:flex;align-items:center;gap:7px}
+.chip .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.chip:hover{border-color:var(--accent)}
+.chip.on{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+
+.legend{display:flex;flex-wrap:wrap;gap:15px;font-family:var(--ui);font-size:11.5px;color:var(--muted);padding:4px 4px 0}
+.legend i{width:11px;height:11px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:-1px}
+
+/* formula + plain words */
+.formula{background:var(--raised);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:14px 0}
+.formula .eq{overflow-x:auto;color:var(--ink)}
+.formula .plain{font-family:var(--ui);font-size:14px;color:var(--ink2);margin-top:10px;border-top:1px dashed var(--line2);padding-top:9px;line-height:1.5}
+.formula .plain b{color:var(--accent);font-weight:700;letter-spacing:.02em}
+
+/* real-world example */
+.example{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.example .xl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;display:flex;align-items:center;gap:7px;margin-bottom:7px;color:var(--mid)}
+.example .xl i{width:9px;height:9px;border-radius:2px;background:var(--mid)}
+.example p{margin:0;font-size:14.5px;color:var(--ink2);line-height:1.5}
+.example b{color:var(--ink);font-weight:600}
+
+.note{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-size:14.5px;color:var(--ink2)}
+.note h4{font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:7px}
+.split{display:grid;grid-template-columns:1.5fr 1fr;gap:18px;margin-top:18px;align-items:start}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}
+
+/* prediction readout */
+.readout{font-family:var(--ui)}
+.readout .rrow{display:flex;align-items:center;gap:10px;margin:7px 0}
+.readout .rlab{width:92px;font-size:13px;color:var(--ink2);font-weight:600}
+.readout .rtrack{flex:1;height:9px;background:#EDEEE9;border-radius:5px;overflow:hidden}
+.readout .rfill{height:100%;width:0;border-radius:5px;transition:width .8s ease}
+.readout .rval{width:42px;text-align:right;font-family:var(--mono);font-size:12px;color:var(--ink)}
+
+/* svg classes */
+.edge{stroke:#D6D2C6;stroke-width:1}
+.node{stroke-width:2;fill:#fff;transition:fill .2s}
+.nlabel{font-family:var(--mono);font-size:11px;fill:var(--muted)}
+.detlab{font-family:var(--ui);font-size:10.5px;fill:var(--muted)}
+.frozenbox{fill:rgba(167,174,184,.10);stroke:var(--frozen);stroke-dasharray:5 5}
+.lockt{font-family:var(--mono);font-size:11px;fill:#928D81;font-weight:700}
+.axis{stroke:#C9C5BA;stroke-width:1}
+.axlab{font-size:11px;fill:var(--muted)}
+
+.lims{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}
+.lim{background:#fff;border:1px solid var(--line);border-radius:11px;padding:13px 15px}
+.lim b{display:block;color:var(--bad);font-size:14px;margin-bottom:3px;font-family:var(--display)}
+.lim span{font-size:13px;color:var(--ink2)}
+
+/* code */
+.codehead{display:flex;align-items:center;gap:10px;padding:12px 16px 0;font-family:var(--ui);font-size:12px;color:var(--muted)}
+.codehead .tag{font-family:var(--mono);font-size:11.5px;color:var(--accent);font-weight:700;letter-spacing:.01em}
+.copybtn{margin-left:auto;font-family:var(--ui);font-size:12px;font-weight:600;border:1px solid var(--line2);background:#fff;color:var(--ink2);border-radius:7px;padding:6px 12px;cursor:pointer;transition:.16s}
+.copybtn:hover{border-color:var(--accent);color:var(--accent)}
+pre.code{background:#241F1A;color:#EAE1D2;border-radius:10px;margin:12px 16px 16px;padding:16px 18px;overflow-x:auto;
+  font-family:var(--mono);font-size:13px;line-height:1.65;border:1px solid #3A322A;white-space:pre}
+pre.code .c{color:#8F8472;font-style:italic}
+pre.code .k{color:#F0A92E}
+pre.code .s{color:#2FC2A6}
+pre.code .n{color:#CE82D6}
+
+footer{padding:40px 0 50px;text-align:center;color:var(--muted);font-family:var(--ui);font-size:12px}
+
+@media(max-width:860px){
+  .nav .links{display:none}.menu-btn{display:block}
+  .split,.grid2,.grid3,.lims{grid-template-columns:1fr}
+  .stage[style]{grid-template-columns:1fr!important}
+}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="brand"><span class="mk"></span><span>Feature Reuse — Interactive Companion</span></div>
+  <div class="links" id="navlinks">
+    <a href="#overview" class="active">Overview</a>
+    <a href="#flow">Reuse Flow</a>
+    <a href="#strategies">Strategies</a>
+    <a href="#code">Code</a>
+    <a href="#why">Why It Works</a>
+    <a href="#training">Training</a>
+    <a href="#limits">Limits</a>
+  </div>
+  <button class="menu-btn" onclick="var l=document.getElementById('navlinks');l.style.display=(l.style.display==='flex'?'none':'flex')">☰</button>
+</nav>
+
+<div class="wrap">
+
+<!-- OVERVIEW -->
+<section id="overview" class="hero reveal">
+  <div class="eyebrow"><span class="n">01</span>Overview</div>
+  <h1>Feature Reuse in Transfer Learning</h1>
+  <p class="sub">A model trained once at great cost has already learned to see. Feature reuse transplants that learned perception into a new task — so you reuse what is known and train only what is new. Every figure below is interactive; press play to watch the idea unfold.</p>
+  <div class="kbd">Use the <b>menu</b> above to move between ideas. Each figure has its own <b>play controls</b>.</div>
+
+  <div class="figure card">
+    <div class="stage"><svg id="ovSvg" class="viz" viewBox="0 0 1080 360" aria-label="A pretrained source model's features are reused by a target task"></svg></div>
+    <div class="legend" style="padding:4px 18px 0">
+      <span><i style="background:var(--gen)"></i>generic features (early)</span>
+      <span><i style="background:var(--mid)"></i>mid features</span>
+      <span><i style="background:var(--spec)"></i>specific features (late)</span>
+      <span><i style="background:var(--accent)"></i>new trainable head</span>
+      <span><i style="background:var(--frozen)"></i>frozen / reused</span>
+    </div>
+    <div class="bar">
+      <button class="btn primary" id="ovPlay">▶ Play overview</button>
+      <button class="btn reset" id="ovReset">↺ Reset</button>
+      <div class="spacer"></div>
+      <span class="cap" id="ovCap">A source model is pretrained on a large dataset (e.g. ImageNet, 1.2M images).</span>
+    </div>
+  </div>
+  <p class="figcap"><b>Figure 1.</b> The pretrained extractor (left) is reused by a small target task (right); only the new head is trained.</p>
+
+  <div class="example" style="margin-top:8px">
+    <div class="xl"><i></i>Real-world example</div>
+    <p>A hospital wants to flag <b>pneumonia in chest X-rays</b> but has only ~800 labelled scans. Instead of training a network from scratch, it reuses a ResNet pretrained on ImageNet — the reused layers already detect edges, textures, and shapes — and trains only a small classifier on top. Strong accuracy, tiny dataset.</p>
+  </div>
+</section>
+
+<!-- REUSE FLOW -->
+<section id="flow" class="reveal">
+  <div class="eyebrow"><span class="n">02</span>The Reuse Flow</div>
+  <h2>Watch a real example flow through — and see what trains</h2>
+  <p class="sub">Pick a real task, then run a <b>forward pass</b> to watch an input become reused features and a prediction. Run <b>backprop</b> to watch the gradient update the head and stop at the frozen extractor.</p>
+
+  <div class="figure card">
+    <div class="chips" id="exChips"></div>
+    <div class="stage"><svg id="flowSvg" class="viz" viewBox="0 0 1080 430" aria-label="Interactive network for the selected real-world example"></svg></div>
+    <div class="bar">
+      <button class="btn primary" id="fwd">▶ Forward Pass</button>
+      <button class="btn ghost" id="bwd">▸ Backprop / Train</button>
+      <button class="btn reset" id="freset">↺ Reset</button>
+      <div class="toggle" style="margin-left:6px"><button id="tFreeze" class="on">Frozen extractor</button><button id="tFine">Fine-tune all</button></div>
+      <div class="spacer"></div>
+      <span class="cap" id="flowCap">Choose a task, then press Forward Pass.</span>
+    </div>
+  </div>
+  <p class="figcap"><b>Figure 2.</b> The same architecture serves three real tasks — only the input, the meaning of each layer, and the output change.</p>
+
+  <div class="split">
+    <div class="formula">
+      <div class="eq">\[ h(x)=g_\varphi\!\big(f_\theta(x)\big) \]</div>
+      <div class="plain"><b>In plain words:</b> a network is a <em>feature extractor</em> \(f_\theta\) (the “eyes’’ that turn an input into features) followed by a small <em>head</em> \(g_\varphi\) (the “verdict’’). Feature reuse keeps the pretrained eyes and trains mostly the verdict.</div>
+    </div>
+    <div class="note readout">
+      <h4>Prediction</h4>
+      <div id="predBox"><div style="color:var(--muted);font-size:13.5px">Run a forward pass to see the model’s output for this example.</div></div>
+    </div>
+  </div>
+
+  <div class="formula">
+    <div class="eq">\[ \text{frozen reuse: } \min_{\varphi}\ \tfrac1N\textstyle\sum_i \mathcal{L}\big(g_\varphi(f_{\theta_0}(x_i)),y_i\big) \qquad\quad \text{fine-tune: } \min_{\theta,\varphi}\ \tfrac1N\textstyle\sum_i \mathcal{L}(\cdot) + \tfrac{\lambda}{2}\lVert\theta-\theta_0\rVert^2 \]</div>
+    <div class="plain"><b>In plain words:</b> with the extractor <b>frozen</b>, only the head’s weights \(\varphi\) change — the reused features stay exactly as they were. When you <b>fine-tune</b>, all weights adapt, but the \(\lVert\theta-\theta_0\rVert^2\) term (enforced by a small learning rate) keeps them close to the pretrained values so the model doesn’t forget what it knew.</div>
+  </div>
+</section>
+
+<!-- STRATEGIES -->
+<section id="strategies" class="reveal">
+  <div class="eyebrow"><span class="n">03</span>Strategies</div>
+  <h2>Six ways to reuse — choose what trains</h2>
+  <p class="sub">Feature reuse is a spectrum, from <em>reuse everything, train almost nothing</em> to <em>reuse only the starting point, retrain it all</em>. Pick a strategy; press <b>Run training</b> to see gradients reach only the trainable layers.</p>
+
+  <div class="figure card">
+    <div class="chips" id="stratChips"></div>
+    <div class="stage" style="display:grid;grid-template-columns:290px 1fr;gap:10px;align-items:center">
+      <svg id="stratSvg" class="viz" viewBox="0 0 290 360" aria-label="Frozen and trainable layers for the selected strategy"></svg>
+      <div id="stratInfo" style="padding:4px 12px 4px 4px"></div>
+    </div>
+    <div class="bar">
+      <button class="btn primary" id="stratRun">▶ Run training</button>
+      <button class="btn reset" id="stratReset">↺ Reset</button>
+      <div class="spacer"></div>
+      <span class="cap" id="stratCap">Gradient updates flow only into the trainable (highlighted) layers.</span>
+    </div>
+  </div>
+  <p class="figcap"><b>Figure 3.</b> Selecting a strategy re-freezes the stack; each comes with its objective, a plain-language gloss, and a real deployment.</p>
+</section>
+
+<!-- CODE -->
+<section id="code" class="reveal">
+  <div class="eyebrow"><span class="n">04</span>Implementation</div>
+  <h2>The code, for both approaches</h2>
+  <p class="sub">The same two ideas, in real <b>PyTorch</b>. <b>Frozen</b> feature extraction trains only a fresh head on top of a fixed backbone; <b>fine-tuning</b> adapts the whole backbone with a small learning rate. Switch between them and copy the snippet.</p>
+  <div class="figure card">
+    <div class="chips" id="codeChips">
+      <button class="chip on" data-k="frozen"><span class="dot" style="background:var(--mid)"></span>Frozen feature extraction</button>
+      <button class="chip" data-k="finetune"><span class="dot" style="background:var(--gen)"></span>Fine-tuning</button>
+    </div>
+    <div class="codehead"><span class="tag" id="codeTag"></span><button class="copybtn" id="copyBtn">Copy</button></div>
+    <pre class="code" id="codeBlock"></pre>
+  </div>
+  <div class="note" id="codeNote" style="margin-top:14px"></div>
+</section>
+
+<!-- WHY -->
+<section id="why" class="reveal">
+  <div class="eyebrow"><span class="n">05</span>Why It Works</div>
+  <h2>Why reuse helps</h2>
+  <p class="sub">Two animated intuitions: features run <b>generic → specific</b> with depth (so early layers transfer best), and pretrained weights start optimisation <b>inside a good basin</b> (so training converges far faster).</p>
+
+  <div class="grid2">
+    <div class="figure card" style="margin-top:0">
+      <div class="stage"><svg id="depthSvg" class="viz" viewBox="0 0 520 300" aria-label="Transferability decreasing with depth"></svg></div>
+      <div class="bar"><button class="btn primary" id="depthPlay">▶ Sweep depth</button><button class="btn reset" id="depthReset">↺ Reset</button><div class="spacer"></div><span class="cap">generic → specific</span></div>
+    </div>
+    <div class="figure card" style="margin-top:0">
+      <div class="stage"><svg id="landSvg" class="viz" viewBox="0 0 520 300" aria-label="Loss landscape: random vs pretrained initialisation"></svg></div>
+      <div class="bar"><button class="btn primary" id="landPlay">▶ Drop the ball</button><button class="btn reset" id="landReset">↺ Reset</button><div class="spacer"></div><span class="cap" id="landCap">random vs pretrained init</span></div>
+    </div>
+  </div>
+
+  <div class="formula" style="margin-top:16px">
+    <div class="eq">\[ \varepsilon_{\text{gen}}\ \lesssim\ \sqrt{\mathcal{C}/N} \]</div>
+    <div class="plain"><b>In plain words:</b> the gap between training and test error shrinks when the <em>trainable</em> part is simpler (smaller \(\mathcal{C}\)) and the dataset is larger (bigger \(N\)). Reusing a frozen extractor slashes \(\mathcal{C}\), so even a tiny dataset generalises — that is why reuse fights overfitting.</div>
+  </div>
+
+  <div class="grid3">
+    <div class="note"><h4>Universal early features</h4>First-layer filters resemble Gabor edges and colour blobs across datasets — a generic visual alphabet that transfers almost perfectly.</div>
+    <div class="note"><h4>Better starting point</h4>Pretrained weights begin inside a favourable basin of the loss surface, so convergence needs far fewer steps.</div>
+    <div class="note"><h4>Built-in regulariser</h4>Fixing the extractor shrinks the model’s freedom to overfit, turning the prior into a powerful regulariser on small data.</div>
+  </div>
+</section>
+
+<!-- TRAINING -->
+<section id="training" class="reveal">
+  <div class="eyebrow"><span class="n">06</span>Training Dynamics</div>
+  <h2>From scratch vs. transfer</h2>
+  <p class="sub">Press <b>Run training</b> to race two models on the same task: one from random weights, one reusing a pretrained extractor. Watch the transfer model start lower and converge faster, epoch by epoch.</p>
+
+  <div class="figure card">
+    <div class="stage"><svg id="lossSvg" class="viz" viewBox="0 0 1080 380" aria-label="Animated training loss curves"></svg></div>
+    <div class="bar">
+      <button class="btn primary" id="lossRun">▶ Run training</button>
+      <button class="btn reset" id="lossReset">↺ Reset</button>
+      <div class="toggle" style="margin-left:6px"><button id="dSmall" class="on">Small dataset</button><button id="dLarge">Large dataset</button></div>
+      <div class="spacer"></div>
+      <span class="cap mono" id="lossCap">epoch 0 · ready</span>
+    </div>
+  </div>
+  <p class="figcap"><b>Figure 4.</b> A schematic of the <b>800-X-ray pneumonia</b> task: transfer (teal) starts lower and converges faster than training from scratch (grey).</p>
+</section>
+
+<!-- LIMITS -->
+<section id="limits" class="reveal">
+  <div class="eyebrow"><span class="n">07</span>Limitations</div>
+  <h2>When reuse hurts</h2>
+  <p class="sub">Reuse is a <em>bet on relatedness</em>. Toggle the source domain and press <b>Transfer</b>: a related source dips the error below the from-scratch baseline (positive transfer); an unrelated one can rise above it (negative transfer).</p>
+
+  <div class="figure card">
+    <div class="stage"><svg id="negSvg" class="viz" viewBox="0 0 1080 330" aria-label="Positive vs negative transfer curves"></svg></div>
+    <div class="bar">
+      <div class="toggle"><button id="related" class="on">Related domain</button><button id="unrelated">Unrelated domain</button></div>
+      <button class="btn primary" id="negRun" style="margin-left:6px">▶ Transfer</button>
+      <button class="btn reset" id="negReset">↺ Reset</button>
+      <div class="spacer"></div>
+      <span class="cap" id="negCap">Lower is better. Compare the transfer curve to the baseline.</span>
+    </div>
+  </div>
+  <p class="figcap"><b>Figure 5.</b> Lower is better. Reuse wins only when source and target genuinely share structure.</p>
+
+  <div class="example" style="margin-top:14px">
+    <div class="xl"><i style="background:var(--bad)"></i>Real-world example of negative transfer</div>
+    <p>Reusing an <b>ImageNet</b> photo model for <b>audio spectrograms</b> or highly abstract medical scans can backfire: the source’s natural-image statistics don’t match, so the reused features mislead the model. Studies of medical imaging (e.g. <em>Transfusion</em>, Raghu et al.) found that very large ImageNet models often gave little or no benefit on domain-distant tasks — sometimes a small model trained from scratch did just as well.</p>
+  </div>
+
+  <div class="lims">
+    <div class="lim"><b>Negative transfer</b><span>An unrelated source can do worse than random initialisation.</span></div>
+    <div class="lim"><b>Domain mismatch</b><span>Features tuned to source statistics may not fit the target.</span></div>
+    <div class="lim"><b>Architecture lock-in</b><span>You inherit the input size, depth, and design.</span></div>
+    <div class="lim"><b>Inherited bias</b><span>Source-dataset blind spots carry into your task.</span></div>
+    <div class="lim"><b>Resource overhead</b><span>Large backbones are heavy to run at inference.</span></div>
+    <div class="lim"><b>Catastrophic forgetting</b><span>Too high a learning rate erases the reused features.</span></div>
+  </div>
+</section>
+
+<footer>Feature Reuse — an interactive companion for transfer learning · reuse what is known, learn only what is new</footer>
+</div>
+
+<script>
+const NS="http://www.w3.org/2000/svg";
+const el=(t,a={},p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;};
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const tween=(dur,cb,done)=>{const t0=performance.now();(function fr(t){let p=Math.min(1,(t-t0)/dur);cb(p);p<1?requestAnimationFrame(fr):done&&done();})(performance.now());};
+const ease=p=>p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+const C={gen:'#E89A1C',mid:'#15A98C',spec:'#AE3CA0',accent:'#0E7E5E',ok:'#138A5A',bad:'#BC3A2C',frozen:'#BBB09B',edge:'#E0D6C0',ink:'#2A241F',muted:'#847A6B'};
+const lerp=(a,b,t)=>{const h=s=>[parseInt(s.slice(1,3),16),parseInt(s.slice(3,5),16),parseInt(s.slice(5,7),16)];const A=h(a),B=h(b);return'#'+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,'0')).join('');};
+const cmap=t=>t<.5?lerp(C.gen,C.mid,t/.5):lerp(C.mid,C.spec,(t-.5)/.5);
+
+(()=>{const links=[...document.querySelectorAll('#navlinks a')],m={};links.forEach(l=>m[l.getAttribute('href').slice(1)]=l);
+  new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){links.forEach(l=>l.classList.remove('active'));m[e.target.id]&&m[e.target.id].classList.add('active');}}),{rootMargin:'-45% 0px -50% 0px'}).observe&&document.querySelectorAll('section').forEach(s=>{});
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){links.forEach(l=>l.classList.remove('active'));m[e.target.id]&&m[e.target.id].classList.add('active');}}),{rootMargin:'-45% 0px -50% 0px'});
+  document.querySelectorAll('section').forEach(s=>io.observe(s));
+  const rv=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&e.target.classList.add('in')),{threshold:.07});
+  document.querySelectorAll('.reveal').forEach(s=>rv.observe(s));})();
+
+function pulse(g,x1,y1,x2,y2,color,dur=420){const c=el('circle',{r:3.9,fill:color},g);c.style.filter='drop-shadow(0 0 5px '+color+')';
+  tween(dur,p=>{c.setAttribute('cx',x1+(x2-x1)*p);c.setAttribute('cy',y1+(y2-y1)*p);c.setAttribute('opacity',p<.12?p*8:(p>.85?(1-p)*6.7:1));},()=>c.remove());}
+
+/* ===== example presets (real-world) ===== */
+const EX={
+  med:{tag:'Medical imaging',input:'Chest X-ray',det:['edges & texture','lung regions','opacity patterns'],
+       out:['Pneumonia','Normal'],pred:[0.87,0.13],
+       strat:'Frozen extraction — only ~800 labelled scans, so freeze the ImageNet backbone and train a small head.'},
+  drive:{tag:'Autonomous driving',input:'Dashcam frame',det:['edges & texture','road / car parts','object shapes'],
+       out:['Pedestrian','Vehicle','Sign'],pred:[0.74,0.19,0.07],
+       strat:'Full fine-tuning — ~100k labelled frames, so adapt every layer to the new camera and roads (small LR).'},
+  nlp:{tag:'NLP sentiment',input:'Product review',det:['word pieces','phrases','sentiment cues'],
+       out:['Positive','Negative'],pred:[0.91,0.09],
+       strat:'Gradual unfreezing — a few thousand labels, so unfreeze top-down with discriminative learning rates.'}
+};
+
+/* ===== SECTION 02 — flow with real example ===== */
+const Flow=(()=>{
+  const svg=document.getElementById('flowSvg');const W=1080,H=430;
+  const layers=[{n:5,role:'in',cx:95},{n:5,role:'ex',cx:255,t:0.05},{n:4,role:'ex',cx:420,t:0.45},{n:4,role:'ex',cx:585,t:0.85},{n:3,role:'head',cx:765},{n:2,role:'out',cx:935}];
+  let nodes=[],edges=[],gE,gN,gP,gF,busy=false,frozen=true,fb,lockLabel,curEx='med';
+  const detText=[];
+  function colorFor(L){if(L.role==='in')return '#A89B86';if(L.role==='head'||L.role==='out')return C.accent;return cmap(L.t);}
+  function build(){
+    svg.innerHTML='';gF=el('g',{},svg);gE=el('g',{},svg);gN=el('g',{},svg);gP=el('g',{},svg);
+    const exs=layers.filter(l=>l.role==='ex');const x0=exs[0].cx-46,x1=exs[exs.length-1].cx+46;
+    fb=el('rect',{x:x0,y:74,width:x1-x0,height:296,rx:13,class:'frozenbox'},gF);
+    lockLabel=el('text',{x:(x0+x1)/2,y:62,'text-anchor':'middle',class:'lockt'},gF);lockLabel.textContent='🔒  REUSED — feature extractor fθ  (frozen)';
+    const E=EX[curEx];
+    nodes=layers.map((L,li)=>{const top=H/2-((L.n-1)*46)/2;const arr=[];
+      for(let i=0;i<L.n;i++)arr.push({x:L.cx,y:top+i*46,li,color:colorFor(L)});
+      let lab=L.role==='in'?E.input:L.role==='head'?'head  gφ':L.role==='out'?'output':'';
+      el('text',{x:L.cx,y:top-24,'text-anchor':'middle',class:'nlabel'},gN).textContent=lab;
+      return arr;});
+    // detail captions under extractor layers
+    detText.length=0;
+    exs.forEach((L,k)=>{const t=el('text',{x:L.cx,y:H/2+((layers.find(l=>l===L).n-1)*46)/2+44,'text-anchor':'middle',class:'detlab'},gN);
+      t.textContent=E.det[k];detText.push(t);});
+    // output class labels
+    const outL=layers[5];const ot=outL.cx, otop=H/2-((outL.n-1)*46)/2;
+    nodes[5].forEach((nd,i)=>el('text',{x:ot+26,y:nd.y+4,class:'detlab','text-anchor':'start'},gN).textContent=E.out[i]||'');
+    edges=[];for(let li=1;li<layers.length;li++)nodes[li-1].forEach(a=>nodes[li].forEach(b=>edges.push({e:el('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,class:'edge'},gE),a,b,li})));
+    nodes.forEach((layer,li)=>layer.forEach(nd=>{const c=el('circle',{cx:nd.x,cy:nd.y,r:15,fill:'#fff',stroke:nd.color,class:'node'},gN);c.style.color=nd.color;nd.c=c;}));
+    applyFrozen();
+  }
+  function applyFrozen(){nodes.forEach((layer,li)=>{if(layers[li].role==='ex')layer.forEach(nd=>nd.c.setAttribute('stroke',frozen?C.frozen:nd.color));});
+    fb.style.display=frozen?'block':'none';lockLabel.style.display=frozen?'block':'none';}
+  function lit(layer,on){layer.forEach(nd=>{if(on){nd.c.setAttribute('fill',nd.color);nd.c.setAttribute('stroke',nd.color);nd.c.style.filter='drop-shadow(0 0 7px '+nd.color+')';}else{nd.c.setAttribute('fill','#fff');nd.c.style.filter='';applyFrozen();}});}
+  function cap(t){document.getElementById('flowCap').innerHTML=t;}
+  function reset(){build();cap('Forward pass: the input becomes reused features, then a prediction.');document.getElementById('predBox').innerHTML='<div style="color:var(--muted);font-size:13.5px">Run a forward pass to see the model’s output for this example.</div>';}
+  function showPrediction(){
+    const E=EX[curEx];const box=document.getElementById('predBox');box.innerHTML='';
+    E.out.forEach((o,i)=>{const row=document.createElement('div');row.className='rrow';
+      const col=i===0?C.mid:C.muted;
+      row.innerHTML=`<span class="rlab">${o}</span><span class="rtrack"><span class="rfill" style="background:${col}"></span></span><span class="rval">${(E.pred[i]*100|0)}%</span>`;
+      box.appendChild(row);setTimeout(()=>{row.querySelector('.rfill').style.width=(E.pred[i]*100)+'%';},60+i*120);});
+  }
+  async function forward(){if(busy)return;busy=true;reset();const E=EX[curEx];
+    for(let li=0;li<layers.length;li++){
+      if(li>0)edges.filter(e=>e.li===li).forEach(e=>pulse(gP,e.a.x,e.a.y,e.b.x,e.b.y,layers[li].role==='head'||layers[li].role==='out'?C.accent:cmap(layers[li].t??.5),360));
+      await wait(170);lit(nodes[li],true);const L=layers[li];
+      cap(L.role==='in'?'<b>'+E.input+'</b> enters the network.':L.role==='ex'?'<b>Reused</b> layer detects <b>'+E.det[layers.slice(0,li).filter(x=>x.role==='ex').length]+'</b> — no learning here.':L.role==='head'?'Trainable head combines the features…':'Prediction produced.');
+      await wait(300);
+    }
+    showPrediction();cap('Forward pass complete — reused features produced the <b>'+E.out[0]+'</b> prediction.');busy=false;
+  }
+  async function backward(){if(busy)return;busy=true;nodes.forEach(l=>lit(l,true));await wait(120);
+    cap('Backprop: gradients flow backward from the loss…');
+    for(const li of [5,4]){edges.filter(e=>e.li===li).forEach(e=>pulse(gP,e.b.x,e.b.y,e.a.x,e.a.y,C.accent,360));await wait(420);}
+    if(frozen){const bx=(layers[3].cx+layers[4].cx)/2;
+      el('text',{x:bx,y:H/2,'text-anchor':'middle','font-family':'JetBrains Mono','font-size':13,fill:C.bad,'font-weight':700},gP).textContent='✕ frozen — no update';
+      for(let k=0;k<3;k++){edges.filter(e=>e.li===4).slice(0,4).forEach(e=>pulse(gP,e.a.x,e.a.y,e.b.x,e.b.y,C.bad,260));await wait(220);}
+      cap('Only the <b>head gφ</b> updates — gradients <b style="color:var(--bad)">stop</b> at the frozen extractor. That is feature reuse.');
+    }else{for(const li of [3,2,1]){edges.filter(e=>e.li===li).forEach(e=>pulse(gP,e.b.x,e.b.y,e.a.x,e.a.y,C.accent,340));await wait(360);}
+      cap('<b>Fine-tuning:</b> gradients reach <b>every</b> layer — all weights adapt (use a small learning rate).');}
+    await wait(400);nodes.forEach(l=>lit(l,false));busy=false;}
+  function setFrozen(f){frozen=f;reset();document.getElementById('tFreeze').classList.toggle('on',f);document.getElementById('tFine').classList.toggle('on',!f);}
+  function setEx(k){curEx=k;[...document.getElementById('exChips').children].forEach(c=>c.classList.toggle('on',c.dataset.k===k));reset();
+    cap('<b>'+EX[k].tag+'</b> — '+EX[k].strat);}
+  // chips
+  const chipBox=document.getElementById('exChips');
+  [['med','Medical imaging',C.mid],['drive','Autonomous driving',C.gen],['nlp','NLP sentiment',C.spec]].forEach((e,i)=>{
+    const b=document.createElement('button');b.className='chip'+(i===0?' on':'');b.dataset.k=e[0];
+    b.innerHTML='<span class="dot" style="background:'+e[2]+'"></span>'+e[1];b.onclick=()=>setEx(e[0]);chipBox.appendChild(b);});
+  build();
+  document.getElementById('fwd').onclick=forward;document.getElementById('bwd').onclick=backward;document.getElementById('freset').onclick=reset;
+  document.getElementById('tFreeze').onclick=()=>setFrozen(true);document.getElementById('tFine').onclick=()=>setFrozen(false);
+  return {};
+})();
+
+/* ===== SECTION 01 — overview transplant ===== */
+(()=>{const svg=document.getElementById('ovSvg');const W=1080;let gp;
+  function draw(){svg.innerHTML='';const cols=[0.08,0.5,0.9];const sx=70;
+    el('text',{x:170,y:40,'text-anchor':'middle','font-family':'JetBrains Mono','font-size':12.5,fill:C.accent,'font-weight':700},svg).textContent='SOURCE · pretrained';
+    const src=cols.map((t,ci)=>{const x=sx+ci*90;const a=[];for(let i=0;i<4;i++){const y=112+i*52;el('circle',{cx:x,cy:y,r:13,fill:'#fff',stroke:cmap(t),'stroke-width':2},svg);a.push({x,y,t});}return a;});
+    el('text',{x:170,y:332,'text-anchor':'middle',class:'nlabel'},svg).textContent='ImageNet · 1.2M images';
+    const tx=640;el('text',{x:tx+135,y:40,'text-anchor':'middle','font-family':'JetBrains Mono','font-size':12.5,fill:C.accent,'font-weight':700},svg).textContent='TARGET · your task';
+    const tgt=cols.map((t,ci)=>{const x=tx+ci*90;const a=[];for(let i=0;i<4;i++){const y=112+i*52;const c=el('circle',{cx:x,cy:y,r:13,fill:'#fff',stroke:C.frozen,'stroke-width':2},svg);a.push({x,y,t,c});}return a;});
+    const hx=tx+3*90+8;const head=[];for(let i=0;i<3;i++){const y=138+i*52;const c=el('circle',{cx:hx,cy:y,r:13,fill:'#fff',stroke:C.accent,'stroke-width':2},svg);head.push({x:hx,y,c});}
+    el('text',{x:hx,y:92,'text-anchor':'middle',class:'nlabel'},svg).textContent='new head';
+    el('text',{x:tx+135,y:332,'text-anchor':'middle',class:'nlabel'},svg).textContent='800 X-rays · tiny data';
+    el('text',{x:W/2,y:175,'text-anchor':'middle','font-family':'JetBrains Mono','font-size':14,fill:C.mid,'font-weight':700},svg).textContent='REUSE  fθ';
+    el('path',{d:'M430 195 L628 195',stroke:C.mid,'stroke-width':2},svg);el('path',{d:'M613 188 L630 195 L613 202 Z',fill:C.mid},svg);
+    gp=el('g',{},svg);return {src,tgt,head};}
+  let S=draw();
+  async function play(){S=draw();const cap=t=>document.getElementById('ovCap').innerHTML=t;
+    cap('A source model is pretrained on a large dataset…');await wait(400);
+    cap('Its learned <b>features are transplanted</b> into the new task…');
+    for(let ci=0;ci<3;ci++){for(let i=0;i<4;i++){const a=S.src[ci][i],b=S.tgt[ci][i];pulse(gp,a.x,a.y,b.x,b.y,cmap(a.t),700);}await wait(360);
+      S.tgt[ci].forEach(n=>{n.c.setAttribute('stroke',cmap(n.t));n.c.setAttribute('fill',cmap(n.t));n.c.style.filter='drop-shadow(0 0 6px '+cmap(n.t)+')';});}
+    await wait(300);cap('Only the <b style="color:var(--accent)">new head</b> is trained on the small target dataset.');
+    S.head.forEach((n,i)=>setTimeout(()=>{n.c.setAttribute('fill',C.accent);n.c.style.filter='drop-shadow(0 0 6px '+C.accent+')';},i*160));await wait(700);
+    cap('Result: a strong model from tiny data — that is feature reuse.');}
+  function reset(){S=draw();document.getElementById('ovCap').innerHTML='A source model is pretrained on a large dataset (e.g. ImageNet, 1.2M images).';}
+  document.getElementById('ovPlay').onclick=play;document.getElementById('ovReset').onclick=reset;})();
+
+/* ===== SECTION 03 — strategies ===== */
+(()=>{const svg=document.getElementById('stratSvg');const rows=['head','conv5','conv4','conv3','conv2','conv1'];
+  const S=[
+   {name:'Frozen extraction',mask:[1,0,0,0,0,0],eq:'\\min_{\\varphi}\\ \\tfrac1N\\sum_i\\mathcal{L}(g_\\varphi(z_i),y_i)',plain:'Only the head trains; the reused features <b>z</b> stay fixed.',ex:'800 chest X-rays → frozen ResNet + logistic head.'},
+   {name:'Full fine-tuning',mask:[1,1,1,1,1,1],eq:'\\min_{\\theta,\\varphi}\\ \\tfrac1N\\sum_i\\mathcal{L}(\\cdot)+\\tfrac{\\lambda}{2}\\|\\theta-\\theta_0\\|^2',plain:'All layers adapt, but stay near the pretrained weights θ₀.',ex:'100k dashcam frames → tune all layers (small LR).'},
+   {name:'Partial fine-tuning',mask:[1,1,1,0,0,0],eq:'\\theta_{\\text{low}}\\ \\text{fixed};\\ \\min_{\\theta_{\\text{high}},\\varphi}\\ \\tfrac1N\\sum_i\\mathcal{L}(\\cdot)',plain:'Freeze generic layers; train only the semantic upper layers.',ex:'5k product photos → freeze conv1-3, tune conv4-5 + head.'},
+   {name:'Gradual unfreezing',mask:[1,1,0,0,0,0],eq:'\\eta_l=\\eta_{\\text{base}}\\,\\xi^{(L-l)},\\ 0<\\xi<1',plain:'Earlier layers learn more slowly (smaller learning rate) than later ones.',ex:'NLP sentiment with few labels (ULMFiT).'},
+   {name:'LoRA / adapters',mask:[1,0,0,0,0,0],lora:true,eq:'W=W_0+BA,\\ \\operatorname{rank}(BA)=r\\ll d',plain:'Freeze the big matrix W₀; learn a tiny low-rank correction BA (<1% of weights).',ex:'Adapt a 7B LLM to legal text; ship a tiny adapter.'}
+  ];
+  let cur=0,busy=false,cells=[];const chipBox=document.getElementById('stratChips');
+  S.forEach((s,i)=>{const b=document.createElement('button');b.className='chip'+(i===0?' on':'');b.textContent=s.name;b.onclick=()=>sel(i);chipBox.appendChild(b);});
+  function draw(){svg.innerHTML='';cells=[];const x=20,w=250,h=44,gap=8;
+    rows.forEach((r,i)=>{const y=14+i*(h+gap);const tr=S[cur].mask[i]===1;
+      const rect=el('rect',{x,y,width:w,height:h,rx:9,fill:tr?'rgba(35,33,28,.07)':'rgba(167,174,184,.10)',stroke:tr?C.accent:C.frozen,'stroke-width':1.5},svg);
+      if(!tr)rect.setAttribute('stroke-dasharray','5 5');
+      el('text',{x:x+16,y:y+h/2+4,'font-family':'JetBrains Mono','font-size':13,fill:tr?C.ink:'#928D81'},svg).textContent=r;
+      el('text',{x:x+w-14,y:y+h/2+4,'text-anchor':'end','font-family':'JetBrains Mono','font-size':10.5,fill:tr?C.accent:'#9C978B','font-weight':700},svg).textContent=tr?(S[cur].lora&&i===0?'+ adapter':'trainable'):'frozen';
+      cells.push({rect,y:y+h/2,tr,x,w});});
+    const s=S[cur];
+    document.getElementById('stratInfo').innerHTML=
+      `<div style="font-family:var(--display);font-weight:600;font-size:19px;color:var(--ink);margin-bottom:8px">${s.name}</div>
+       <div class="formula" style="margin:0 0 10px"><div class="eq">\\[ ${s.eq} \\]</div><div class="plain"><b>In plain words:</b> ${s.plain}</div></div>
+       <div class="example"><div class="xl"><i></i>Real-world example</div><p>${s.ex}</p></div>`;
+    if(window.MathJax&&MathJax.typesetPromise)MathJax.typesetPromise([document.getElementById('stratInfo')]);
+  }
+  function sel(i){cur=i;[...chipBox.children].forEach((c,k)=>c.classList.toggle('on',k===i));draw();document.getElementById('stratCap').innerHTML='Gradient updates flow only into the trainable (highlighted) layers.';}
+  async function run(){if(busy)return;busy=true;const gp=el('g',{},svg);
+    document.getElementById('stratCap').innerHTML='Backprop: gradients descend from the loss…';
+    for(let i=0;i<cells.length;i++){const cell=cells[i];
+      if(cell.tr){cell.rect.setAttribute('fill','rgba(35,33,28,.16)');for(let k=0;k<3;k++)pulse(gp,cell.x+28+k*70,cell.y,cell.x+56+k*70,cell.y,C.accent,300);await wait(360);}
+      else{el('text',{x:cell.x+cell.w/2,y:cell.y+4,'text-anchor':'middle','font-family':'JetBrains Mono','font-size':11,fill:C.bad,'font-weight':700},gp).textContent='✕ no gradient';
+        document.getElementById('stratCap').innerHTML='Gradients <b style="color:var(--bad)">stop</b> at the frozen layers — only the highlighted layers learn.';break;}}
+    if(S[cur].mask.every(m=>m===1))document.getElementById('stratCap').innerHTML='Full fine-tuning: every layer receives a gradient and adapts.';busy=false;}
+  draw();document.getElementById('stratRun').onclick=run;document.getElementById('stratReset').onclick=()=>{draw();document.getElementById('stratCap').innerHTML='Gradient updates flow only into the trainable (highlighted) layers.';};})();
+
+/* ===== SECTION 04a — depth ===== */
+(()=>{const svg=document.getElementById('depthSvg');const W=520;const labels=['conv1','conv2','conv3','conv4','conv5','fc'];const hs=[1,.84,.64,.46,.3,.18];let bars=[];
+  function draw(){svg.innerHTML='';bars=[];const bw=58,gap=14,x0=40,base=240,mh=180;
+    el('line',{x1:30,y1:base,x2:W-20,y2:base,class:'axis'},svg);
+    labels.forEach((lb,i)=>{const x=x0+i*(bw+gap),h=hs[i]*mh,t=i/(labels.length-1);
+      const r=el('rect',{x,y:base-h,width:bw,height:h,rx:6,fill:cmap(t),opacity:.88},svg);
+      el('text',{x:x+bw/2,y:base+18,'text-anchor':'middle','font-family':'JetBrains Mono','font-size':10,fill:C.muted},svg).textContent=lb;bars.push({r,t});});
+    el('text',{x:40,y:26,'font-family':'JetBrains Mono','font-size':11,fill:C.gen,'font-weight':700},svg).textContent='generic · transfers best';
+    el('text',{x:W-30,y:26,'text-anchor':'end','font-family':'JetBrains Mono','font-size':11,fill:C.spec,'font-weight':700},svg).textContent='specific · worst';}
+  async function sweep(){draw();for(const b of bars){b.r.setAttribute('opacity',1);b.r.style.filter='drop-shadow(0 2px 5px rgba(0,0,0,.16))';await wait(260);b.r.style.filter='';b.r.setAttribute('opacity',.9);}}
+  draw();document.getElementById('depthPlay').onclick=sweep;document.getElementById('depthReset').onclick=draw;})();
+
+/* ===== SECTION 04b — landscape ===== */
+(()=>{const svg=document.getElementById('landSvg');const Wd=520,TOPy=58,BOTy=246,PADx=18;
+  const Lf=t=>1.5*Math.pow(t-0.30,2)+0.06*Math.cos(9*t);
+  const dL=t=>3.0*(t-0.30)-0.54*Math.sin(9*t);
+  let Lmin=1e9,Lmax=-1e9,tmin=0.3,best=1e9;
+  for(let i=0;i<=400;i++){const t=i/400,v=Lf(t);if(v<Lmin)Lmin=v;if(v>Lmax)Lmax=v;if(v<best){best=v;tmin=t;}}
+  const tx=t=>PADx+t*(Wd-2*PADx);
+  const ly=t=>BOTy-(Lf(t)-Lmin)/(Lmax-Lmin)*(BOTy-TOPy);
+  let layer;
+  function draw(){svg.innerHTML='';
+    let d='';for(let i=0;i<=200;i++){const t=i/200;d+=(i?' L':'M')+tx(t).toFixed(1)+' '+ly(t).toFixed(1);}
+    el('path',{d:d+` L${tx(1).toFixed(1)} 300 L${tx(0).toFixed(1)} 300 Z`,fill:'rgba(232,154,28,.08)'},svg);
+    el('path',{d,fill:'none',stroke:'#CBAE73','stroke-width':2.5},svg);
+    el('circle',{cx:tx(tmin),cy:ly(tmin),r:4,fill:C.ok},svg);
+    el('text',{x:tx(tmin),y:ly(tmin)+20,'text-anchor':'middle','font-family':'JetBrains Mono','font-size':10,fill:C.ok},svg).textContent='minimum';
+    layer=el('g',{},svg);}
+  function ball(t,color,label,below){const cx=tx(t),cy=ly(t)-8;
+    const b=el('circle',{cx,cy,r:9,fill:color,stroke:'#fff','stroke-width':2},layer);b.style.filter='drop-shadow(0 2px 4px rgba(0,0,0,.2))';
+    const tl=el('text',{x:cx,y:cy+(below?22:-13),'text-anchor':'middle','font-family':'JetBrains Mono','font-size':10,fill:color},layer);tl.textContent=label;
+    return {b,tl,below};}
+  function move(o,t){const cy=ly(t)-8;o.b.setAttribute('cx',tx(t));o.b.setAttribute('cy',cy);o.tl.setAttribute('x',tx(t));o.tl.setAttribute('y',cy+(o.below?22:-13));}
+  function reset(){draw();ball(0.50,C.accent,'pretrained init',true);ball(0.92,C.bad,'random init',false);
+    document.getElementById('landCap').innerHTML='random init (far) vs pretrained init (near the basin)';}
+  function roll(){draw();const p=ball(0.50,C.accent,'pretrained',true),r=ball(0.92,C.bad,'random',false);
+    document.getElementById('landCap').innerHTML='Pretrained init settles into the basin in far fewer steps.';
+    let pt=0.50,pv=0,rt=0.92,rv=0,n=0;
+    (function step(){pv=0.86*pv-0.0016*dL(pt);pt=Math.max(0,Math.min(1,pt+pv));
+      rv=0.86*rv-0.0016*dL(rt);rt=Math.max(0,Math.min(1,rt+rv));
+      move(p,pt);move(r,rt);n++;if(n<240)requestAnimationFrame(step);})();}
+  reset();document.getElementById('landPlay').onclick=roll;document.getElementById('landReset').onclick=reset;})();
+
+/* ===== SECTION 05 — loss curves ===== */
+(()=>{const svg=document.getElementById('lossSvg');const W=1080,H=380;const ox=70,oy=40,bw=W-130,bh=H-110;let small=true,running=false;
+  const X=i=>ox+bw*i/30,Y=v=>oy+bh*(1-Math.min(1,v/2.6));
+  function series(){const N=30,sc=[],tr=[];for(let i=0;i<=N;i++){const e=i/N;sc.push(2.35*Math.exp(-2.2*e)+0.5);tr.push(1.25*Math.exp(-4.2*e)+0.16);}return{sc,tr,N};}
+  function axes(){svg.innerHTML='';el('line',{x1:ox,y1:oy,x2:ox,y2:oy+bh,class:'axis'},svg);el('line',{x1:ox,y1:oy+bh,x2:ox+bw,y2:oy+bh,class:'axis'},svg);
+    el('text',{x:ox-12,y:oy+4,'text-anchor':'end',class:'axlab'},svg).textContent='loss';el('text',{x:ox+bw,y:oy+bh+24,'text-anchor':'end',class:'axlab'},svg).textContent='epochs →';
+    for(let g=1;g<=3;g++){const y=oy+bh*g/4;el('line',{x1:ox,y1:y,x2:ox+bw,y2:y,stroke:'#EBEBE2','stroke-width':1},svg);}}
+  let gS,gT;
+  function reset(){axes();gS=el('g',{},svg);gT=el('g',{},svg);
+    el('text',{x:ox+bw-6,y:Y(0.6)-10,'text-anchor':'end','font-family':'JetBrains Mono','font-size':12,fill:C.muted},svg).textContent='from scratch';
+    el('text',{x:ox+bw-6,y:Y(0.16)+22,'text-anchor':'end','font-family':'JetBrains Mono','font-size':12,fill:C.mid},svg).textContent='transfer (feature reuse)';
+    document.getElementById('lossCap').textContent='epoch 0 · ready';}
+  async function run(){if(running)return;running=true;reset();const {sc,tr,N}=series();let dS='',dT='';
+    const mS=el('circle',{r:5,fill:C.muted},gS),mT=el('circle',{r:5,fill:C.mid},gT);mT.style.filter='drop-shadow(0 1px 3px rgba(0,0,0,.2))';
+    const pS=el('path',{fill:'none',stroke:C.muted,'stroke-width':2.5},gS),pT=el('path',{fill:'none',stroke:C.mid,'stroke-width':2.8},gT);
+    for(let i=0;i<=N;i++){dS+=(i?' L':'M')+X(i)+' '+Y(sc[i]);dT+=(i?' L':'M')+X(i)+' '+Y(tr[i]);pS.setAttribute('d',dS);pT.setAttribute('d',dT);
+      mS.setAttribute('cx',X(i));mS.setAttribute('cy',Y(sc[i]));mT.setAttribute('cx',X(i));mT.setAttribute('cy',Y(tr[i]));
+      document.getElementById('lossCap').innerHTML=`epoch ${i} · scratch ${sc[i].toFixed(2)} · <b>transfer ${tr[i].toFixed(2)}</b>`;await wait(70);}
+    document.getElementById('lossCap').innerHTML=`done · transfer reached <b>${tr[N].toFixed(2)}</b> vs scratch ${sc[N].toFixed(2)} — lower and faster`+(small?' (small data magnifies the gap)':'');running=false;}
+  function setData(s){small=s;document.getElementById('dSmall').classList.toggle('on',s);document.getElementById('dLarge').classList.toggle('on',!s);reset();}
+  reset();document.getElementById('lossRun').onclick=run;document.getElementById('lossReset').onclick=reset;
+  document.getElementById('dSmall').onclick=()=>setData(true);document.getElementById('dLarge').onclick=()=>setData(false);})();
+
+/* ===== SECTION 06 — negative transfer ===== */
+(()=>{const svg=document.getElementById('negSvg');const W=1080,H=330;const ox=70,oy=34,bw=W-140,bh=H-90;let related=true,running=false;
+  const X=i=>ox+bw*i/30,Y=v=>oy+bh*(1-Math.min(1,v/1.4));
+  function base(){svg.innerHTML='';el('line',{x1:ox,y1:oy,x2:ox,y2:oy+bh,class:'axis'},svg);el('line',{x1:ox,y1:oy+bh,x2:ox+bw,y2:oy+bh,class:'axis'},svg);
+    el('text',{x:ox-12,y:oy+4,'text-anchor':'end',class:'axlab'},svg).textContent='error';el('text',{x:ox+bw,y:oy+bh+24,'text-anchor':'end',class:'axlab'},svg).textContent='epochs →';
+    let d='';for(let i=0;i<=30;i++){const e=i/30,v=1.05*Math.exp(-2.0*e)+0.42;d+=(i?' L':'M')+X(i)+' '+Y(v);}
+    el('path',{d,fill:'none',stroke:'#A8A399','stroke-width':2,'stroke-dasharray':'6 5'},svg);
+    el('text',{x:ox+bw-6,y:Y(0.42)-10,'text-anchor':'end','font-family':'JetBrains Mono','font-size':12,fill:C.muted},svg).textContent='from scratch (baseline)';}
+  function curve(){const a=[];for(let i=0;i<=30;i++){const e=i/30;a.push(related?0.92*Math.exp(-3.4*e)+0.20:0.72*Math.exp(-1.2*e)+0.62+0.10*e);}return a;}
+  async function run(){if(running)return;running=true;base();const col=related?C.ok:C.bad;
+    const p=el('path',{fill:'none',stroke:col,'stroke-width':3},svg),m=el('circle',{r:5,fill:col},svg);m.style.filter='drop-shadow(0 1px 3px rgba(0,0,0,.2))';
+    const a=curve();let d='';for(let i=0;i<=30;i++){d+=(i?' L':'M')+X(i)+' '+Y(a[i]);p.setAttribute('d',d);m.setAttribute('cx',X(i));m.setAttribute('cy',Y(a[i]));await wait(55);}
+    el('text',{x:X(30)-6,y:Y(a[30])+(related?22:-12),'text-anchor':'end','font-family':'JetBrains Mono','font-size':12,fill:col,'font-weight':700},svg).textContent=related?'positive transfer ✓':'negative transfer ✕';
+    document.getElementById('negCap').innerHTML=related?'Related domain: the curve ends <b style="color:var(--ok)">below</b> the baseline — reuse helped.':'Unrelated domain: the curve sits <b style="color:var(--bad)">above</b> the baseline — reuse hurt.';running=false;}
+  function setRel(r){related=r;document.getElementById('related').classList.toggle('on',r);document.getElementById('unrelated').classList.toggle('on',!r);base();document.getElementById('negCap').innerHTML='Lower is better. Press Transfer to compare against the baseline.';}
+  base();document.getElementById('negRun').onclick=run;document.getElementById('negReset').onclick=()=>{base();document.getElementById('negCap').innerHTML='Lower is better. Compare the transfer curve to the baseline.';};
+  document.getElementById('related').onclick=()=>setRel(true);document.getElementById('unrelated').onclick=()=>setRel(false);})();
+
+/* ===== CODE SECTION — PyTorch snippets ===== */
+(()=>{
+  const PYKW=/\b(import|from|for|in|with|as|def|return|if|elif|else|while|and|or|not|is|class|lambda|True|False|None)\b/g;
+  const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  function hlCode(v){v=v.replace(PYKW,'<span class="k">$1</span>');v=v.replace(/\b(\d+\.?\d*(?:e-?\d+)?)\b/g,'<span class="n">$1</span>');return v;}
+  function highlight(code){code=esc(code);const re=/(#[^\n]*)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g;
+    let out='',last=0,m;
+    while((m=re.exec(code))){out+=hlCode(code.slice(last,m.index));out+=m[1]?'<span class="c">'+m[1]+'</span>':'<span class="s">'+m[2]+'</span>';last=m.index+m[0].length;}
+    out+=hlCode(code.slice(last));return out;}
+  const SN={
+    frozen:{tag:'PyTorch · torchvision ResNet-50 · Chest X-ray (pneumonia)',
+      note:'<b style="color:var(--accent)">Frozen feature extraction</b> — best when the target dataset is small and close to the source. The backbone is a fixed feature factory; only a small head learns, so it trains in minutes on ~800 images and is very hard to overfit.',
+      code:`import torch
+import torch.nn as nn
+from torchvision import models
+
+# 1 · Load a backbone pretrained on ImageNet
+model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V2)
+
+# 2 · FREEZE the whole feature extractor -> no gradients, features stay fixed
+for param in model.parameters():
+    param.requires_grad = False
+
+# 3 · Replace the head for the new task (2 classes: pneumonia vs normal)
+#     Only this fresh layer will be trained.
+model.fc = nn.Linear(model.fc.in_features, 2)
+
+# 4 · The optimiser sees ONLY the new head's parameters
+optimizer = torch.optim.Adam(model.fc.parameters(), lr=1e-3)
+criterion = nn.CrossEntropyLoss()
+
+# 5 · Train -- backprop updates the head; the backbone never changes
+for images, labels in train_loader:        # ~800 chest X-rays
+    optimizer.zero_grad()
+    logits = model(images)                 # reused features -> prediction
+    loss = criterion(logits, labels)
+    loss.backward()                        # gradient stops at the frozen backbone
+    optimizer.step()`},
+    finetune:{tag:'PyTorch · torchvision ResNet-50 · Dashcam objects',
+      note:'<b style="color:var(--accent)">Fine-tuning</b> — best with more data or a real domain shift. Every layer adapts, but the small learning rate keeps the reused features close to their pretrained values, so the model adapts without forgetting what it learned.',
+      code:`import torch
+import torch.nn as nn
+from torchvision import models
+
+# 1 · Start from the SAME ImageNet-pretrained backbone
+model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V2)
+
+# 2 · Keep every layer trainable (this is the default).
+#     Optional: freeze just the earliest block to save compute:
+# for param in model.layer1.parameters():
+#     param.requires_grad = False
+
+# 3 · Replace the head for the new task (3 classes: pedestrian / vehicle / sign)
+model.fc = nn.Linear(model.fc.in_features, 3)
+
+# 4 · Optimiser sees the WHOLE network, but with a SMALL learning rate
+#     so pretrained features adapt gently instead of being overwritten.
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)   # ~10x smaller
+criterion = nn.CrossEntropyLoss()
+
+# 5 · Train -- gradients now reach every layer
+for images, labels in train_loader:        # ~100k dashcam frames
+    optimizer.zero_grad()
+    logits = model(images)
+    loss = criterion(logits, labels)
+    loss.backward()                        # all weights update (gently)
+    optimizer.step()`}
+  };
+  const block=document.getElementById('codeBlock'),tag=document.getElementById('codeTag'),note=document.getElementById('codeNote');
+  let cur='frozen';
+  function render(){const s=SN[cur];block.innerHTML=highlight(s.code);tag.textContent=s.tag;note.innerHTML=s.note;}
+  document.querySelectorAll('#codeChips .chip').forEach(c=>c.onclick=()=>{cur=c.dataset.k;
+    document.querySelectorAll('#codeChips .chip').forEach(x=>x.classList.toggle('on',x.dataset.k===cur));render();});
+  document.getElementById('copyBtn').onclick=async()=>{const b=document.getElementById('copyBtn');const text=SN[cur].code;let ok=false;
+    try{await navigator.clipboard.writeText(text);ok=true;}catch(e){
+      try{const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.top='-1000px';document.body.appendChild(ta);ta.focus();ta.select();ok=document.execCommand('copy');document.body.removeChild(ta);}catch(e2){ok=false;}}
+    b.textContent=ok?'Copied ✓':'Select & Ctrl+C';setTimeout(()=>b.textContent='Copy',1600);};
+  render();
+})();
+</script>
+</body>
+</html>
